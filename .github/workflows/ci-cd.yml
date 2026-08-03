@@ -1,0 +1,61 @@
+name: CI/CD Pipeline - Static Site
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  content: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV_MESSAGE: ${{ secrets.APP_ENV_MESSAGE }}
+    steps:
+      - name: Checkout repository
+        uses: action/checkout@v4
+
+      - name: Show Build info (secret auto-mask in logs)
+        run: |
+          echo "Building Static Sites ...."
+          echo "Build tag message: $APP_ENV_MESSAGE"
+          ls -la
+
+      - name: Upload site as pages artifact
+        uses: action/upload-pages-artifact@v3
+        with:
+          path: .
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout repository
+        uses: action/checkout@v4
+
+      - name: Run test Suite
+        run: bash test.sh 
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: test
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to Github Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+
+
+        
